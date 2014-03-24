@@ -29,11 +29,7 @@ class OdnoklassnikiSDK{
     }
     
     public static function checkCurlSupport(){
-        if (function_exists('curl_init')) {
-            print "Curl работает<br>";
-        } else {
-            print "Curl не работает<br>";
-        }
+        return function_exists('curl_init');
     }
     
     public static function changeCodeToToken($code){
