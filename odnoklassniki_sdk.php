@@ -82,7 +82,7 @@ class OdnoklassnikiSDK{
         $parameters[self::PARAMETER_NAME_ACCESS_TOKEN] = self::$access_token;
         $requestStr = "";
         foreach($parameters as $key=>$value){
-            $requestStr .= $key . "=" . $value . "&";
+            $requestStr .= $key . "=" . urlencode($value) . "&";
         }
         $requestStr = substr($requestStr, 0, -1);
         $curl = curl_init(self::$API_REQUSET_ADDRESS . "?" . $requestStr);
