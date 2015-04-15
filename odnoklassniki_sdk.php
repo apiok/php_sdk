@@ -2,6 +2,7 @@
 class OdnoklassnikiSDK{
     const PARAMETER_NAME_ACCESS_TOKEN = "access_token";
     const PARAMETER_NAME_REFRESH_TOKEN = "refresh_token";
+    const PARAMETER_NAME_AUTHORIZATION_CODE = "authorization_code";
     private static $app_id = "";
     private static $app_public_key = "";
     private static $app_secret_key = "";
@@ -35,7 +36,14 @@ class OdnoklassnikiSDK{
     public static function changeCodeToToken($code){
         $curl = curl_init(self::$TOKEN_SERVICE_ADDRESS);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, 'code=' . $code . '&redirect_uri=' . self::$redirect_url . '&grant_type=authorization_code&client_id=' . self::$app_id . '&client_secret=' . self::$app_secret_key);
+        $postFields = [
+            'code' => $code,
+            'redirect_uri' => self::$redirect_url,
+            'grant_type' => self::PARAMETER_NAME_AUTHORIZATION_CODE,
+            'client_id' => self::$app_id,
+            'client_secret' => self::$app_secret_key,
+        ];
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $postFields);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         $s = curl_exec($curl);
         curl_close($curl);
@@ -52,7 +60,13 @@ class OdnoklassnikiSDK{
     public static function updateAccessTokenWithRefreshToken(){
         $curl = curl_init(self::$TOKEN_SERVICE_ADDRESS);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, 'refresh_token=' . self::$refresh_token . '&grant_type=refresh_token&client_id=' . self::$app_id . '&client_secret=' . self::$app_secret_key);
+        $postFields = [
+            'refresh_token' => self::$refresh_token,
+            'grant_type' => self::PARAMETER_NAME_REFRESH_TOKEN,
+            'client_id' => self::$app_id,
+            'client_secret' => self::$app_secret_key,
+        ];
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $postFields);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         $s = curl_exec($curl);
         curl_close($curl);
@@ -65,26 +79,18 @@ class OdnoklassnikiSDK{
         }
     }
     
-    public static function makeRequest($methodName, $parameters = null){
-        if (is_null(self::$app_id) || is_null(self::$app_public_key) || is_null(self::$app_secret_key) || is_null(self::$access_token) || !(is_null($parameters) || is_array($parameters))){
+    public static function makeRequest($methodName, array $parameters = []){
+        if (is_null(self::$app_id) || is_null(self::$app_public_key) || is_null(self::$app_secret_key) || is_null(self::$access_token) ){
             return null;
         }
-        if (!is_null($parameters)) {
-            if (!self::isAssoc($parameters)){
-                return null;
-            }
-        } else {
-            $parameters = array();
+        if (!self::isAssoc($parameters)){
+            return null;
         }
         $parameters["application_key"] = self::$app_public_key;
         $parameters["method"] = $methodName;
         $parameters["sig"] = self::calcSignature($methodName, $parameters);
         $parameters[self::PARAMETER_NAME_ACCESS_TOKEN] = self::$access_token;
-        $requestStr = "";
-        foreach($parameters as $key=>$value){
-            $requestStr .= $key . "=" . urlencode($value) . "&";
-        }
-        $requestStr = substr($requestStr, 0, -1);
+        $requestStr = http_build_query($parameters);
         $curl = curl_init(self::$API_REQUSET_ADDRESS . "?" . $requestStr);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         $s = curl_exec($curl);
@@ -92,16 +98,12 @@ class OdnoklassnikiSDK{
         return json_decode($s, true);
     }
     
-    private static function calcSignature($methodName, $parameters = null){
-        if (is_null(self::$app_id) || is_null(self::$app_public_key) || is_null(self::$app_secret_key) || is_null(self::$access_token) || !(is_null($parameters) || is_array($parameters))){
+    private static function calcSignature($methodName, array $parameters = []){
+        if (is_null(self::$app_id) || is_null(self::$app_public_key) || is_null(self::$app_secret_key) || is_null(self::$access_token) ){
             return null;
         }
-        if (!is_null($parameters)) {
-            if (!self::isAssoc($parameters)){
-                return null;
-            }
-        } else {
-            $parameters = array();
+        if (!self::isAssoc($parameters)){
+            return null;
         }
         $parameters["application_key"] = self::$app_public_key;
         $parameters["method"] = $methodName;
@@ -121,4 +123,3 @@ class OdnoklassnikiSDK{
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
 }
-?>
